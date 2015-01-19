@@ -13,6 +13,7 @@ def split_into_dimensions(data):
       dataZ.append(val)
   return dataX, dataY, dataZ
 
+
 class Face():
   """ 
   This class represents a collection of Data from the Kinect Facetracking Library

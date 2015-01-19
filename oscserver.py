@@ -1,44 +1,54 @@
 import argparse
 import math
 
+import numpy as np
+
 from pythonosc import dispatcher
 from pythonosc import osc_server
-from FTData_pb2 import FaceTrackFrame
+
+from plot import Faceplot
+
+from face import Face
 
 
 from pythonosc import osc_packet
-#from FTData_pb2 import (FaceTrackFrame, Point)
 
-def print_volume_handler(unused_addr, args, volume):
-  print("[{0}] ~ {1}".format(args[0], volume))
+faceplot = Faceplot()
+i = [0]
+face_points = np.empty(shape=363,)
 
-def print_compute_handler(unused_addr, args, volume):
-  try:
-    print("[{0}] ~ {1}".format(args[0], args[1](volume)))
-  except ValueError: pass
 
-def recvFtf(unused_addr, bundle):
-  ftf = FaceTrackFrame()
-  ftf.ParseFromString(bundle)
-  print(ftf.ListFields())
+def recvFtf(address, x, y, z):
+    index = int(address[7:])
+    face_points[index] = x
+    face_points[index + 1] = y
+    face_points[index + 2] = z
+    i[0] += 1
 
+    if(index == 1 and i[0]==3630):
+        faceplot.update_data(Face(face_points))
+        faceplot.redraw()
+        i[0] = 0
+
+
+def main(ip, port):
+    _dispatcher = dispatcher.Dispatcher()
+    for index in range(121):
+        _dispatcher.map("/kinect" + str(index) , recvFtf)
+
+    server = osc_server.BlockingOSCUDPServer(
+        (ip, port), _dispatcher)
+    print("Serving on {}".format(server.server_address))
+    server.serve_forever()
 
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--ip",
-      default="127.0.0.1", help="The ip to listen on")
-  parser.add_argument("--port",
-      type=int, default=9000, help="The port to listen on")
-  args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ip",
+        default="127.0.0.1", help="The ip to listen on")
 
-  dispatcher = dispatcher.Dispatcher()
-  dispatcher.map("/kinect", recvFtf)
-  dispatcher.map("/debug", print)
-  dispatcher.map("/logvolume", print_compute_handler, "Log volume", math.log)
-  #dispatcher.set_default_handler(print)
+    parser.add_argument("--port",
+        type=int, default=9000, help="The port to listen on")
 
-  server = osc_server.ThreadingOSCUDPServer(
-      (args.ip, args.port), dispatcher)
-  print("Serving on {}".format(server.server_address))
-  server.serve_forever()
+    args = parser.parse_args()
+    main(args.ip, args.port)
