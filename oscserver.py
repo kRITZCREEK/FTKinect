@@ -3,6 +3,8 @@ import math
 
 from pythonosc import dispatcher
 from pythonosc import osc_server
+from FTData_pb2 import FaceTrackFrame
+
 
 from pythonosc import osc_packet
 #from FTData_pb2 import (FaceTrackFrame, Point)
@@ -15,10 +17,10 @@ def print_compute_handler(unused_addr, args, volume):
     print("[{0}] ~ {1}".format(args[0], args[1](volume)))
   except ValueError: pass
 
-def recvFtf(unused_addr, args, bundle):
-  #ftf = FaceTrackFrame()
-  #ftf.ParseFromBytes(bytes_ftf)
-  print(bundle)
+def recvFtf(unused_addr, bundle):
+  ftf = FaceTrackFrame()
+  ftf.ParseFromString(bundle)
+  print(ftf.ListFields())
 
 
 
@@ -27,7 +29,7 @@ if __name__ == "__main__":
   parser.add_argument("--ip",
       default="127.0.0.1", help="The ip to listen on")
   parser.add_argument("--port",
-      type=int, default=5005, help="The port to listen on")
+      type=int, default=9000, help="The port to listen on")
   args = parser.parse_args()
 
   dispatcher = dispatcher.Dispatcher()
